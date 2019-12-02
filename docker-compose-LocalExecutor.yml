@@ -1,0 +1,38 @@
+version: '2.1'
+services:
+    postgres:
+        image: postgres:9.6
+        restart: always
+        environment:
+            - POSTGRES_USER=airflow
+            - POSTGRES_PASSWORD=airflow
+            - POSTGRES_DB=airflow
+        volumes:
+            - /home/ubuntu/postgres-data:/var/lib/postgresql/data
+
+    webserver:
+        image: puckel/docker-airflow:1.10.3
+        restart: always
+        depends_on:
+            - postgres
+        env_file:
+            - nwrc.local.env
+        environment:
+            - FERNET_KEY=${FERNET_KEY}
+            - AIRFLOW__CORE__FERNET_KEY=${FERNET_KEY}
+        volumes:
+            - ./dags:/usr/local/airflow/dags
+            - ./logs:/usr/local/airflow/logs
+            - /home/ubuntu/.ssh/id_rsa:/usr/local/airflow/.ssh/id_rsa
+            # Uncomment to include custom plugins
+            # - ./plugins:/usr/local/airflow/plugins
+        ports:
+            - "8080:8080"
+        command: webserver
+        healthcheck:
+            test: ["CMD-SHELL", "[ -f /usr/local/airflow/airflow-webserver.pid ]"]
+            interval: 30s
+            timeout: 30s
+            retries: 3
+
+# {"key_file": "/usr/local/airflow/.ssh/id_rsa", "no_host_key_check": true}
